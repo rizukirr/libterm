@@ -1,0 +1,15 @@
+set(LIBTERM_LINK_TARGET libterm_static)
+if(NOT LIBTERM_BUILD_STATIC)
+    set(LIBTERM_LINK_TARGET libterm_shared)
+endif()
+
+function(libterm_add_test name)
+    add_executable(${name} ${name}.c)
+    target_link_libraries(${name} PRIVATE ${LIBTERM_LINK_TARGET})
+    target_include_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+libterm_add_test(test_utf8)
+libterm_add_test(test_buffer)
+libterm_add_test(test_api)
