@@ -2,7 +2,8 @@
 
 /* TODO: mouse + color demo */
 int main(void) {
-    if (lt_init() != LT_OK) return 1;
-    lt_shutdown();
-    return 0;
+  if (lt_init() != LT_OK)
+    return 1;
+  lt_shutdown();
+  return 0;
 }

@@ -43,6 +43,9 @@ src/
       output.c
       input.c
       ...
+  lib/                        # library
+    arena.h
+    ...
 external/termbox2/            # upstream reference — read-only
 ```
 
@@ -64,7 +67,7 @@ external/termbox2/            # upstream reference — read-only
 ## Public API boundary
 
 The only header consumers include is `include/libterm/libterm.h`. It must:
-- Compile as C99 on both platforms.
+- Compile as C11 on both platforms.
 - Expose only `lt_*` / `LT_*` symbols.
 - Contain no platform `#ifdef`s visible to the user (internal header may).
 - Keep the termbox2 function signatures where possible, translated to `lt_` names — this gives users a near drop-in migration path.
@@ -75,14 +78,33 @@ Internal shared declarations go in `src/shared/internal.h` (not installed).
 
 Target build system: **CMake** (portable across MSVC, MinGW, clang, gcc).
 - Static + shared library targets.
-- `examples/` for demos (mirrors `external/termbox2/demo/`).
-- `tests/` for unit tests (mirrors `external/termbox2/tests/`).
+- `examples/` for demos.
+- `tests/` for unit tests.
 
 Do not introduce autotools, Meson, or platform-specific build scripts without discussing first.
 
+## Code style
+
+- Use LLVM formatting style for all C/C headers.
+- Preferred command: `clang-format -style=LLVM -i <files...>`.
+- Do not run formatter on `external/`.
+
+## Performance and allocator policy
+
+libterm is an optimized, readable, scalable evolution of termbox2.
+
+- Preserve termbox2 compatibility at API level, but prefer cleaner internals and faster paths.
+- OPtimize for fewer terminal writes, lower latency input handling and predictable behavior under resize.
+- Keep modules small and testable, avoid monolithic functions.
+
+Memory allocation rule:
+- Use `src/lib/arena.h` allocator APIs for libterm-owned runtime memory.
+- Do not use direct `malloc`, `calloc`, `realloc`, or `free` in libterm implementation code except inside allocator implementation boundaries, if any.
+- Prefer arena-backed lifecycle allocation patterns and explicit reset/free phases.
+
 ## What not to do
 
-- Do not modify anything under `external/termbox2/` — it's the reference.
+- Do not modify anything under `external/` — it's the reference.
 - Do not put `#ifdef _WIN32` in `src/shared/`.
 - Do not keep any `tb_` / `TB_` identifier in libterm source — the rename must be total.
 - Do not make this header-only. Implementation lives in `.c` files.

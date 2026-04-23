@@ -2,6 +2,4 @@
 #include <assert.h>
 
 /* TODO: buffer resize / diff tests */
-int main(void) {
-    return 0;
-}
+int main(void) { return 0; }

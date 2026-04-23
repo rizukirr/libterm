@@ -12,6 +12,7 @@
  *     WINDOW_BUFFER_SIZE_EVENT → LT_EVENT_RESIZE
  */
 int lt__plat_read_event(struct lt_event *ev, int timeout_ms) {
-    (void)ev; (void)timeout_ms;
-    return LT_ERR_NO_EVENT;
+  (void)ev;
+  (void)timeout_ms;
+  return LT_ERR_NO_EVENT;
 }

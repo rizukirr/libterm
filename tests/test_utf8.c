@@ -2,6 +2,4 @@
 #include <assert.h>
 
 /* TODO: exercise lt__utf8_* once implemented */
-int main(void) {
-    return 0;
-}
+int main(void) { return 0; }
