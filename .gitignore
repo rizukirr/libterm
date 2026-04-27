@@ -10,6 +10,7 @@ out/
 *.dylib
 *.dll
 *.exp
+*.exe
 *.pdb
 *.ilk
 .vs/
@@ -22,5 +23,4 @@ Makefile
 compile_commands.json
 external/
 /.codex
-/.no-vibe
 /.omx
