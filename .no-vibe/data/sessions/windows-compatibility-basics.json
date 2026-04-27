@@ -1,0 +1,19 @@
+﻿{
+    "topic":  "Windows compatibility basics for libterm",
+    "mode":  "concept",
+    "status":  "completed",
+    "started":  "2026-04-27",
+    "layers_total":  6,
+    "layers_completed":  6,
+    "current_phase":  "phase6",
+    "current_layer":  6,
+    "revision_id":  0,
+    "errors_this_session":  3,
+    "entries_this_session":  2,
+    "unapplied_gaps":  [
+
+                       ],
+    "refs":  [
+
+             ]
+}

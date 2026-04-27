@@ -1,0 +1,40 @@
+﻿[
+    {
+        "id":  "m-1777293044832-0",
+        "user_mistake":  "mixed lt__plat_get_size pointer writes into lt__plat_init, causing undeclared w/h",
+        "misconception_id":  "function-scope-mismatch",
+        "pck_gap":  "wrong-sequencing",
+        "load_mismatch":  "under-scaffolded",
+        "gap_action":  "teach one function at a time, with explicit insertion scope and compile checkpoint before next snippet",
+        "reflection_window":  3,
+        "applied":  true,
+        "retry_count":  0,
+        "resolved_at":  null,
+        "correct_uses":  [
+
+                         ],
+        "topic":  "windows compatibility basics",
+        "layer":  2,
+        "revision_id_at_creation":  0,
+        "created_at":  "2026-04-27T19:30:44.8283968+07:00"
+    },
+    {
+        "id":  "m-1777293044832-1",
+        "user_mistake":  "used inverted event gate (if (rec.EventType == KEY_EVENT) continue;) so key input was always skipped",
+        "misconception_id":  "event-filter-inversion",
+        "pck_gap":  "buried-key-rule",
+        "load_mismatch":  "under-scaffolded",
+        "gap_action":  "call out positive/negative branch explicitly and verify exact event gate line before proceeding",
+        "reflection_window":  3,
+        "applied":  true,
+        "retry_count":  0,
+        "resolved_at":  null,
+        "correct_uses":  [
+
+                         ],
+        "topic":  "windows compatibility basics",
+        "layer":  4,
+        "revision_id_at_creation":  0,
+        "created_at":  "2026-04-27T19:30:44.8283968+07:00"
+    }
+]
