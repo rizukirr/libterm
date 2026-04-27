@@ -14,9 +14,15 @@ int main(void) {
   }
   lt_present();
 
+  fprintf(stderr, "before poll\n");
+  fflush(stderr);
   struct lt_event ev;
   int rc = lt_poll_event(&ev);
-  fprintf(stderr, "lt_poll_event rc=%d\n", rc);
+  fprintf(stderr, "after poll\n");
+  fflush(stderr);
+
+  fprintf(stderr, "rc=%d type=%u key=%u ch=%u w=%d h=%d\n", rc, ev.type, ev.key,
+          ev.ch, ev.w, ev.h);
 
   lt_shutdown();
   return 0;
