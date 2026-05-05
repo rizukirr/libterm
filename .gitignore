@@ -24,3 +24,5 @@ compile_commands.json
 external/
 /.codex
 /.omx
+/.claude
+CLAUDE.md 

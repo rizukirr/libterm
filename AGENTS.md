@@ -1,115 +1,77 @@
 # AGENTS.md
 
-Guidance for AI agents working on **libterm** — a cross-platform (Windows + POSIX) terminal UI library derived from [termbox2](https://github.com/termbox/termbox2).
+## What this project is
 
-## Project overview
+**libterm** is a rewrite of [termbox2](https://github.com/termbox/termbox2) — same public API, same event semantics, same drawing model, but reorganized into a compiled multi-platform library that runs natively on POSIX (Linux, macOS, BSD) and on Windows (Win32 Console API, no POSIX shim).
 
-libterm is a C library that provides a termbox2-compatible API on both POSIX and native Windows (Win32 Console API). Unlike termbox2, it is **not header-only** — it ships as a compiled library with a public header plus platform-specific implementation files.
+The goal is straightforward: take termbox2 and make it better — faster render path, cleaner internals, real Unicode handling, proper Windows support — **without changing how the API behaves**. Anything you can do with `tb_*` in termbox2, you do with `lt_*` in libterm, and you get the same result.
 
-Upstream reference: `external/termbox2/termbox2.h` (read-only, do not modify).
+## What "the same behavior" means
 
-## Naming conventions
+- Every public function from termbox2 has a `lt_`-prefixed counterpart with the same signature, same return codes, and same observable effect on the terminal.
+- Every `TB_*` macro becomes `LT_*` with the same numeric value where it's externally visible.
+- An `lt_event` for a given key, resize, or mouse input matches the `tb_event` termbox2 would have produced for the same input on the same platform.
+- A program written against termbox2 should be portable to libterm by renaming `tb` → `lt` and `TB` → `LT`. A `compat/termbox2.h` aliasing header is planned to make even that step unnecessary.
 
-All identifiers are renamed from termbox's `tb_` prefix to libterm's `lt_` prefix. This applies uniformly:
+## What "better" means
 
-| termbox2         | libterm          |
-|------------------|------------------|
-| `tb_init`        | `lt_init`        |
-| `tb_event`       | `lt_event`       |
-| `TB_KEY_*`       | `LT_KEY_*`       |
-| `TB_OK`, `TB_ERR_*` | `LT_OK`, `LT_ERR_*` |
-| internal `tb_*`  | internal `lt_*`  |
+- **Multi-platform first-class.** termbox2 is POSIX-only; libterm runs natively on Windows using `ReadConsoleInputW`, wide-char console APIs, and VT output, with no POSIX emulation layer.
+- **Compiled library, not header-only.** Static and shared targets, proper symbol visibility, single public header.
+- **Faster render path.** The diff-based `lt_present` follows refterm's playbook for the parts that matter to a terminal-emitting library: a single reusable output buffer, run-length cell coalescing, cached SGR fragments, and one syscall per frame.
+- **Real Unicode.** Grapheme-cluster segmentation (UAX #29 essentials) instead of `wcwidth`-only width estimation, so ZWJ emoji and regional indicators occupy the right number of cells.
+- **Cleaner internals.** Strict layering (public API / shared core / platform layer), arena-backed allocation, no `#ifdef _WIN32` leaking into shared code.
 
-Macros, typedefs, enums, structs, functions, and file-local statics all follow the rename. When porting code from `termbox2.h`, rewrite every `tb`/`TB` token — do not leave mixed prefixes.
+See `ROADMAP.md` for the full per-API status matrix on both platforms.
+
+## Naming rule
+
+Every `tb_` / `TB_` token from termbox2 is renamed to `lt_` / `LT_` in libterm — macros, typedefs, enums, structs, functions, and file-local statics. When porting, rewrite every token; mixed prefixes are not allowed.
 
 ## Directory layout
 
 ```
 include/libterm/libterm.h     # public API (lt_* declarations, LT_* macros)
 src/
-  shared/                     # platform-independent code
-    buffer.c                  # back/front buffer, cell diffing
-    input.c                   # platform-agnostic event dispatch
+  internal.h                  # shared internal state and helpers
+  platform.h                  # contract between shared core and platform layer
+  shared/                     # platform-independent code — no #ifdef _WIN32
+    api.c                     # lifecycle dispatch
+    buffer.c                  # back/front buffer, cell ops
+    cell.c                    # lt_set_cell
+    input.c                   # event dispatch
+    output.c                  # lt_clear / lt_present / cursor / output mode
     utf8.c                    # UTF-8 encode/decode
-    ...
   platform/
-    posix/                    # termios, ANSI escapes, select/poll, signals
-      init.c
-      output.c
-      input.c
-      ...
-    windows/                  # Win32 Console API, ReadConsoleInput, etc.
-      init.c
-      output.c
-      input.c
-      ...
-  lib/                        # library
-    arena.h
-    ...
-external/termbox2/            # upstream reference — read-only
+    posix/                    # termios + ANSI + select/poll + signals
+    windows/                  # Win32 Console API: ReadConsoleInputW, WriteFile, VT SGR
+  lib/
+    arena.h                   # arena allocator (no raw malloc/free elsewhere)
+external/                     # read-only references (termbox2, refterm)
 ```
 
-**Rule:** platform-specific code lives *only* under `src/platform/<os>/`. Shared code must not `#ifdef _WIN32` — if a difference is needed, expose a small internal function from the platform layer (e.g. `lt__plat_write`, `lt__plat_poll`) and let shared code call it.
+**Layering rule:** platform-specific code lives only under `src/platform/<os>/`. Shared code expresses platform differences by calling small `lt__plat_*` hooks declared in `src/platform.h`. No `#ifdef _WIN32` in `src/shared/`.
 
-## Porting strategy
+## Build and test
 
-1. Copy a logical section from `external/termbox2/termbox2.h` (it's one giant file — split it).
-2. Decide: shared logic, or platform-specific?
-   - Buffer diffing, UTF-8, public API surface → `src/shared/`
-   - Terminal I/O, input reading, resize detection, color output → `src/platform/<os>/`
-3. Rename all `tb`/`TB` identifiers to `lt`/`LT`.
-4. For POSIX, behavior should match termbox2 byte-for-byte where practical.
-5. For Windows, **reimplement natively** using the Win32 Console API:
-   - `SetConsoleMode` with `ENABLE_VIRTUAL_TERMINAL_PROCESSING` is acceptable for output, but input should prefer `ReadConsoleInputW` for accurate key/mouse/resize events.
-   - Use wide-char APIs; convert to/from UTF-8 at the boundary.
-   - Do not depend on a POSIX compatibility shim (no cygwin/msys assumptions).
+```sh
+cmake -B build
+cmake --build build
+ctest --test-dir build
+```
 
-## Public API boundary
-
-The only header consumers include is `include/libterm/libterm.h`. It must:
-- Compile as C11 on both platforms.
-- Expose only `lt_*` / `LT_*` symbols.
-- Contain no platform `#ifdef`s visible to the user (internal header may).
-- Keep the termbox2 function signatures where possible, translated to `lt_` names — this gives users a near drop-in migration path.
-
-Internal shared declarations go in `src/shared/internal.h` (not installed).
-
-## Build
-
-Target build system: **CMake** (portable across MSVC, MinGW, clang, gcc).
-- Static + shared library targets.
-- `examples/` for demos.
-- `tests/` for unit tests.
-
-Do not introduce autotools, Meson, or platform-specific build scripts without discussing first.
+CMake options: `LIBTERM_BUILD_SHARED`, `LIBTERM_BUILD_STATIC`, `LIBTERM_BUILD_EXAMPLES`, `LIBTERM_BUILD_TESTS`, `LIBTERM_WARNINGS_AS_ERRORS`. Tests link `libterm_static` by default.
 
 ## Code style
 
-- Use LLVM formatting style for all C/C headers.
-- Preferred command: `clang-format -style=LLVM -i <files...>`.
-- Do not run formatter on `external/`.
+- LLVM formatting: `clang-format -style=LLVM -i <files>`. Never format anything under `external/`.
+- Allocator: use `src/lib/arena.h`. Do not call `malloc` / `calloc` / `realloc` / `free` directly outside the allocator implementation.
+- C11 on both platforms.
 
-## Performance and allocator policy
+## Hard rules
 
-libterm is an optimized, readable, scalable evolution of termbox2.
-
-- Preserve termbox2 compatibility at API level, but prefer cleaner internals and faster paths.
-- OPtimize for fewer terminal writes, lower latency input handling and predictable behavior under resize.
-- Keep modules small and testable, avoid monolithic functions.
-
-Memory allocation rule:
-- Use `src/lib/arena.h` allocator APIs for libterm-owned runtime memory.
-- Do not use direct `malloc`, `calloc`, `realloc`, or `free` in libterm implementation code except inside allocator implementation boundaries, if any.
-- Prefer arena-backed lifecycle allocation patterns and explicit reset/free phases.
-
-## What not to do
-
-- Do not modify anything under `external/` — it's the reference.
-- Do not put `#ifdef _WIN32` in `src/shared/`.
+- Do not modify anything under `external/`.
+- No `#ifdef _WIN32` in `src/shared/` — push the difference into the platform layer.
+- No third-party dependencies.
+- Do not make the library header-only.
+- Do not add another build system without discussing first.
 - Do not keep any `tb_` / `TB_` identifier in libterm source — the rename must be total.
-- Do not make this header-only. Implementation lives in `.c` files.
-- Do not add third-party dependencies; the whole point is a thin, self-contained library.
-
-## When in doubt
-
-Check how termbox2 does it in `external/termbox2/termbox2.h`, then decide whether that approach ports cleanly to Windows. If it doesn't, write a platform abstraction rather than leaking `#ifdef`s into shared code.
