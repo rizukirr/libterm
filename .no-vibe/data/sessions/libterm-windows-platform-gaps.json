@@ -1,0 +1,15 @@
+{
+  "topic": "libterm Windows platform layer — close API gaps",
+  "mode": "concept",
+  "status": "completed",
+  "started": "2026-05-04",
+  "layers_total": 8,
+  "layers_completed": 8,
+  "current_phase": "phase6",
+  "current_layer": 8,
+  "revision_id": 1,
+  "errors_this_session": 6,
+  "entries_this_session": 4,
+  "unapplied_gaps": ["buried-key-rule"],
+  "refs": ["termbox2"]
+}

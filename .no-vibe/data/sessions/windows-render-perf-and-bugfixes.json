@@ -1,0 +1,15 @@
+{
+  "topic": "Windows render-path bugs + refterm-grade optimizations",
+  "mode": "debug",
+  "status": "completed",
+  "started": "2026-05-05",
+  "layers_total": 12,
+  "layers_completed": 12,
+  "current_phase": "phase6",
+  "current_layer": 12,
+  "revision_id": 4,
+  "errors_this_session": 2,
+  "entries_this_session": 2,
+  "unapplied_gaps": ["win32-qpc-counter-vs-frequency", "selective-edit-omission-on-pattern-replace"],
+  "refs": ["termbox2", "refterm"]
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "a-1777877652969-0",
+    "kind": "preference",
+    "category": "explanation-format",
+    "summary": "for multi-function teaching, user wants per-function code+explain alternation instead of bulk code then bulk explanation",
+    "trigger": "AI showed all six output-layer function bodies in one block then explained them grouped under one heading",
+    "directive": "when teaching N functions, alternate: show function 1 code -> explain function 1 -> show function 2 -> explain function 2 -> ... so each explanation lands while its code is still in the reader's eye",
+    "created_at": "2026-05-04T13:54:12Z"
+  },
+  {
+    "id": "a-1777877652970-1",
+    "kind": "correction",
+    "category": "process-discipline",
+    "summary": "user noticed AI skipped the no-vibe bookkeeping: no Turn Response Contract header, no ai-notes logging, no session JSON across multiple turns",
+    "trigger": "AI taught two layers (resize fix, VT escapes) without emitting the [no-vibe] header, without logging the prior preference as an ai-note, and without creating .no-vibe/data/sessions/<slug>.json or .no-vibe/session.md",
+    "directive": "follow data-logging.md per-turn action order strictly on every reply while no-vibe is ON: read session JSON, run pre-turn audit when errors_this_session>=1, emit the [no-vibe] header as the first line, act, log triggering events to ai-notes/mistakes, update session JSON if any tracked field changed",
+    "created_at": "2026-05-04T13:54:12Z"
+  },
+  {
+    "id": "a-1778120000000-2",
+    "kind": "complaint",
+    "category": "regression-introduced-by-teaching",
+    "summary": "Layer 4 (front/back diff in lt_present) introduced a visible regression: prior shell scrollback shows through unrendered cells because lt__buffer_resize initializes back and front identically, making the first lt_present a no-op",
+    "trigger": "user ran hello.exe after Layer 5 and saw 'old terminal history still there' alongside the rendered message",
+    "directive": "before introducing diff-based optimizations, audit ALL initialization paths that touch the buffers being diffed: if both buffers start equal, the diff's first-frame postcondition is broken. Pattern generalizes — any cache-invalidation predicate must hold on init, not just on transitions during steady state",
+    "created_at": "2026-05-05T00:00:00Z"
+  },
+  {
+    "id": "a-1778120100000-3",
+    "kind": "preference",
+    "category": "library-design-contract",
+    "summary": "lt_init must NOT clear the screen. lt_clear is the SOLE opt-in for blanket background fill. Cells with ch=0 mean 'transparent / unset' and must not emit anything to the terminal — libterm draws on top of whatever the terminal already shows.",
+    "trigger": "user observed that after Layer 6's front-sentinel fix, hello.exe was clearing the terminal even without an lt_clear() call, because lt__buffer_resize fills back with (' ', clear_fg, clear_bg) and the diff renders that as a screen-wide space-paint",
+    "directive": "treat zero-cells as semantically transparent. lt__buffer_resize leaves back as zeros (not space-filled). lt_present's diff branch must skip emission for cells where bc->ch == 0 (sync front so future frames are honest, but emit no bytes and don't move the cursor cache). Document that turning a previously-rendered cell back to transparent requires a full lt_clear-and-redraw cycle",
+    "created_at": "2026-05-05T00:00:00Z"
+  }
+]
