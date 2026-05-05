@@ -1,9 +1,11 @@
-#include "../../internal.h"
-#include "../../platform.h"
-#include "libterm/libterm.h"
+#include "internal.h"
+#include "platform.h"
+#include "win_internal.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+static WCHAR lt__win_pending_high = 0;
 
 static HANDLE lt__win_input_handle(void) {
   return GetStdHandle(STD_INPUT_HANDLE);
@@ -41,22 +43,31 @@ int lt__plat_read_event(struct lt_event *ev, int timeout_ms) {
       return LT_ERR_NO_EVENT;
 
     if (rec.EventType == WINDOW_BUFFER_SIZE_EVENT) {
-      COORD sz = rec.Event.WindowBufferSizeEvent.dwSize;
-      if (sz.X > 0 && sz.Y > 0) {
-        int new_w = (int)sz.X;
-        int new_h = (int)sz.Y;
+      lt__win_pending_high = 0;
 
-        int rc = lt__buffer_resize(new_w, new_h);
-        if (rc != LT_OK)
-          return rc;
+      int new_w = 0, new_h = 0;
+      int rc = lt__plat_get_size(&new_w, &new_h);
+      if (rc != LT_OK)
+        return rc;
 
-        memset(ev, 0, sizeof(struct lt_event));
-        ev->type = LT_EVENT_RESIZE;
-        ev->w = new_w;
-        ev->h = new_h;
-        return LT_OK;
-      }
-      continue;
+      if (new_w <= 0 || new_h <= 0)
+        continue;
+
+      if (new_w == lt__g.width && new_h == lt__g.height)
+        continue;
+
+      rc = lt__buffer_resize(new_w, new_h);
+      if (rc != LT_OK)
+        return rc;
+
+      lt__g.cur_x = -1;
+      lt__g.cur_y = -1;
+
+      memset(ev, 0, sizeof(struct lt_event));
+      ev->type = LT_EVENT_RESIZE;
+      ev->w = new_w;
+      ev->h = new_h;
+      return LT_OK;
     }
 
     if (rec.EventType != KEY_EVENT)
@@ -78,37 +89,39 @@ int lt__plat_read_event(struct lt_event *ev, int timeout_ms) {
     if (kev.dwControlKeyState & (SHIFT_PRESSED))
       ev->mod |= LT_MOD_SHIFT;
 
-    switch (kev.wVirtualKeyCode) {
-    case VK_RETURN:
-      ev->key = LT_KEY_ENTER;
+    WORD mapped = lt__win_vk_to_lt_key(kev.wVirtualKeyCode);
+    if (mapped != 0) {
+      lt__win_pending_high = 0;
+      ev->key = mapped;
       return LT_OK;
-    case VK_ESCAPE:
-      ev->key = LT_KEY_ESC;
-      return LT_OK;
-    case VK_BACK:
-      ev->key = LT_KEY_BACKSPACE;
-      return LT_OK;
-    case VK_TAB:
-      ev->key = LT_KEY_TAB;
-      return LT_OK;
-    case VK_UP:
-      ev->key = LT_KEY_ARROW_UP;
-      return LT_OK;
-    case VK_DOWN:
-      ev->key = LT_KEY_ARROW_DOWN;
-      return LT_OK;
-    case VK_LEFT:
-      ev->key = LT_KEY_ARROW_LEFT;
-      return LT_OK;
-    case VK_RIGHT:
-      ev->key = LT_KEY_ARROW_RIGHT;
-      return LT_OK;
-    default:
-      break;
     }
 
-    if (kev.uChar.UnicodeChar != 0) {
-      ev->ch = (lt_uchar)kev.uChar.UnicodeChar;
+    WCHAR ch16 = kev.uChar.UnicodeChar;
+    if (ch16 >= 0xD800 && ch16 <= 0xDBFF) {
+      lt__win_pending_high = ch16;
+      continue;
+    }
+
+    if (ch16 >= 0xDC00 && ch16 <= 0xDFFF) {
+      if (lt__win_pending_high == 0) {
+        ev->ch = 0xFFFD;
+        lt__win_pending_high = 0;
+      } else {
+        lt_uchar cp = (lt_uchar)((lt__win_pending_high - 0xD800) << 10);
+        cp |= (lt_uchar)(ch16 - 0xDC00);
+        cp += 0x10000;
+        ev->ch = cp;
+        lt__win_pending_high = 0;
+      }
+
+      return LT_OK;
+    }
+
+    if (ch16 != 0) {
+      if (lt__win_pending_high != 0)
+        lt__win_pending_high = 0;
+
+      ev->ch = (lt_uchar)ch16;
       return LT_OK;
     }
 
