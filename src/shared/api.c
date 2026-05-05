@@ -25,6 +25,8 @@ int lt_init(void) {
     return rc;
   }
 
+  lt__g.cur_x = -1;
+  lt__g.cur_y = -1;
   lt__g.initialized = 1;
   return LT_OK;
 }

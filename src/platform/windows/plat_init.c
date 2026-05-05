@@ -1,5 +1,5 @@
-#include "../../internal.h"
-#include "../../platform.h"
+#include "internal.h"
+#include "platform.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -28,8 +28,10 @@ int lt__plat_init(void) {
     return LT_ERR_INIT_OPEN;
 
   DWORD in_mode = lt__win_in_mode_orig;
-  in_mode &= ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT);
+  in_mode &= ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT);
   in_mode |= ENABLE_WINDOW_INPUT;
+  in_mode |= ENABLE_EXTENDED_FLAGS;
+  in_mode &= ~ENABLE_QUICK_EDIT_MODE;
 
   if (!SetConsoleMode(lt__win_in, in_mode))
     return LT_ERR_INIT_OPEN;
@@ -44,12 +46,31 @@ int lt__plat_init(void) {
   (void)SetConsoleCP(CP_UTF8);
   (void)SetConsoleOutputCP(CP_UTF8);
 
+  static const char enter_alt[] = "\x1b[?1049h";
+  int rc = lt__plat_write(enter_alt, sizeof(enter_alt) - 1);
+  if (rc != LT_OK) {
+    (void)SetConsoleMode(lt__win_in, lt__win_in_mode_orig);
+    (void)SetConsoleMode(lt__win_out, lt__win_out_mode_orig);
+    return LT_ERR_INIT_OPEN;
+  }
+
+  rc = lt__plat_flush();
+  if (rc != LT_OK) {
+    (void)SetConsoleMode(lt__win_in, lt__win_in_mode_orig);
+    (void)SetConsoleMode(lt__win_out, lt__win_out_mode_orig);
+    return LT_ERR_INIT_OPEN;
+  }
+
   lt__win_modes_saved = 1;
   return LT_OK;
 }
 
 int lt__plat_shutdown(void) {
   if (lt__win_modes_saved) {
+    (void)lt__plat_show_cursor(); /* restore cursor visibility (in alt) */
+    static const char leave_alt[] = "\x1b[?1049l";
+    (void)lt__plat_write(leave_alt, sizeof(leave_alt) - 1);
+    (void)lt__plat_flush();
     (void)SetConsoleMode(lt__win_in, lt__win_in_mode_orig);
     (void)SetConsoleMode(lt__win_out, lt__win_out_mode_orig);
   }

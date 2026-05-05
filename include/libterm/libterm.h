@@ -149,6 +149,7 @@ LT_API int lt_set_clear_attrs(lt_attr fg, lt_attr bg);
 LT_API int lt_present(void);
 LT_API int lt_set_cursor(int x, int y);
 LT_API int lt_hide_cursor(void);
+LT_API int lt_show_cursor(void);
 LT_API int lt_set_cell(int x, int y, lt_uchar ch, lt_attr fg, lt_attr bg);
 
 /* ---- input ---- */
