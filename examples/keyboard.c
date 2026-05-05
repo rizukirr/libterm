@@ -5,26 +5,17 @@
 int main(void) {
   if (lt_init() != LT_OK)
     return 1;
-  lt_clear();
-
-  struct lt_event ev;
-  int rc = lt_poll_event(&ev);
-  (void)rc;
-  assert(!(ev.type == LT_EVENT_KEY && ev.key != 0 && ev.ch != 0));
-
-  const char *shape = "non-key";
-  if (ev.type == LT_EVENT_KEY) {
-    if (ev.key != 0)
-      shape = "named-key";
-    else if (ev.ch != 0)
-      shape = "char-key";
-    else
-      shape = "empty-key";
+  for (;;) {
+    struct lt_event ev;
+    if (lt_poll_event(&ev) != LT_OK)
+      continue;
+    if (ev.type == LT_EVENT_KEY) {
+      fprintf(stderr, "key=0x%04x ch=0x%08x mod=0x%02x\n", (unsigned)ev.key,
+              (unsigned)ev.ch, (unsigned)ev.mod);
+      if (ev.key == LT_KEY_ESC)
+        break;
+    }
   }
-
-  fprintf(stderr, "type=%u key=%u ch=%u mod=%d shape=%s\n", ev.type, ev.key,
-          ev.ch, ev.mod, shape);
-
   lt_shutdown();
   return 0;
 }

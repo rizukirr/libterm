@@ -1,28 +1,21 @@
 #include "libterm/libterm.h"
-#include <stdio.h>
+#include <windows.h>
 
 int main(void) {
-  if (lt_init() != LT_OK) {
-    fprintf(stderr, "lt_init failed\n");
+  if (lt_init() != LT_OK)
     return 1;
-  }
-  lt_clear();
-  const char *msg = "Hello from libterm! (press any key)";
-  int x = 0;
-  for (const char *p = msg; *p; ++p, ++x) {
-    lt_set_cell(x, 0, (lt_uchar)*p, LT_WHITE, LT_DEFAULT);
-  }
+
+  lt_hide_cursor();
+  const char *msg = "cursor toggle test";
+  for (int i = 0; msg[i]; i++)
+    lt_set_cell(2 + i, 1, (lt_uchar)msg[i], 0, 0);
   lt_present();
 
-  fprintf(stderr, "before poll\n");
-  fflush(stderr);
-  struct lt_event ev;
-  int rc = lt_poll_event(&ev);
-  fprintf(stderr, "after poll\n");
-  fflush(stderr);
+  Sleep(2000); /* cursor hidden, msg visible */
 
-  fprintf(stderr, "rc=%d type=%u key=%u ch=%u w=%d h=%d\n", rc, ev.type, ev.key,
-          ev.ch, ev.w, ev.h);
+  lt_set_cursor(2, 3);
+  lt_show_cursor();
+  Sleep(2000); /* cursor now visible at (2,3) */
 
   lt_shutdown();
   return 0;
