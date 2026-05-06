@@ -1,4 +1,5 @@
 #include "internal.h"
+#include "intrinsics/diff.h"
 #include "platform.h"
 
 int lt_clear(void) {
@@ -10,6 +11,10 @@ int lt_clear(void) {
 
   const int count = lt__g.width * lt__g.height;
   lt__buffer_clear(lt__g.back, count, lt__g.clear_fg, lt__g.clear_bg);
+
+  for (int y = 0; y < lt__g.height; y++)
+    lt__g.dirty_rows[y] = true;
+
   return LT_OK;
 }
 
@@ -29,38 +34,63 @@ int lt_present(void) {
   lt__g.cur_x = -1;
   lt__g.cur_y = -1;
 
+  size_t idx = 0;
+  int mc = 0, rc = 0, rest = 0, run_len = 0, run_end = 0, skip = 0;
+
   for (int y = 0; y < lt__g.height; y++) {
-    for (int x = 0; x < lt__g.width; x++) {
-      const size_t idx = (size_t)(y * lt__g.width + x);
-      const struct lt_cell *bc = &lt__g.back[idx];
-      const struct lt_cell *fc = &lt__g.front[idx];
+    if (!lt__g.dirty_rows[y])
+      continue;
 
-      if (bc->ch == fc->ch && bc->fg == fc->fg && bc->bg == fc->bg)
-        continue;
+    int x = 0;
+    while (x < lt__g.width) {
+      /* SIMD outer skip: advance past all equal cells */
+      skip = lt__simd_diff_first_differ_cell(&lt__g.back[y * lt__g.width + x],
+                                             &lt__g.front[y * lt__g.width + x],
+                                             lt__g.width - x);
+      x += skip;
+      if (x >= lt__g.width)
+        break;
 
+      idx = (size_t)(y * lt__g.width + x);
+
+      /* SIMD inner walk: find end of changed run by locating first equal */
+      rest = lt__simd_diff_first_equal_cell(
+          &lt__g.back[idx + 1], &lt__g.front[idx + 1], lt__g.width - x - 1);
+      run_len = 1 + rest;
+      run_end = x + run_len;
+
+      /* emit cursor jump if discontinuous from cache */
       if (x != lt__g.cur_x || y != lt__g.cur_y) {
-        int mc = lt__plat_move_cursor(x, y);
+        mc = lt__plat_move_cursor(x, y);
         if (mc != LT_OK) {
           (void)lt__plat_flush();
           return mc;
         }
       }
 
-      int rc = lt__plat_render_cell(x, y, bc);
+      /* emit the entire run in one block */
+      rc = lt__plat_render_run(&lt__g.back[idx], run_len);
       if (rc != LT_OK) {
         (void)lt__plat_flush();
         return rc;
       }
 
-      lt__g.cur_x = x + 1;
+      /* update cache for end-of-run position */
+      lt__g.cur_x = x + run_len;
       lt__g.cur_y = y;
       if (lt__g.cur_x >= lt__g.width) {
         lt__g.cur_x = -1;
         lt__g.cur_y = -1;
       }
 
-      lt__g.front[idx] = *bc;
+      /* sync front for all cells in run */
+      for (int i = 0; i < run_len; i++)
+        lt__g.front[idx + i] = lt__g.back[idx + i];
+
+      x = run_end;
     }
+
+    lt__g.dirty_rows[y] = false;
   }
 
   return lt__plat_flush();
