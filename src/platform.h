@@ -27,6 +27,7 @@ int lt__plat_move_cursor(int x, int y);
 int lt__plat_hide_cursor(void);
 int lt__plat_show_cursor(void);
 int lt__plat_render_cell(int x, int y, const struct lt_cell *cell);
+int lt__plat_render_run(const struct lt_cell *cells, int count);
 
 /* ---- input ----
  * lt__plat_read_event: blocks up to timeout_ms (-1 = wait forever, 0 =
