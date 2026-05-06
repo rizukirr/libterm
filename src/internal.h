@@ -12,6 +12,7 @@
 /* ---- global state (single terminal instance) ---- */
 struct lt__state {
   bool initialized;
+  bool *dirty_rows;
   int width;
   int height;
   int input_mode;
