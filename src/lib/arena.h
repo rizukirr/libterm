@@ -227,12 +227,19 @@ void arena_restore(Arena *arena, ArenaCheckpoint checkpoint);
  *   - `index` current write position
  *   - `data[]` flexible array member (actual memory region)
  */
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4200) /* C99 flexible array member */
+#endif
 struct ArenaBlock {
   struct ArenaBlock *next;
   size_t capacity;
   size_t index;
   uint8_t data[];
 };
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 /**
  * @brief Internal arena structure.
@@ -264,7 +271,7 @@ struct Arena {
  * @return Number of bytes of padding needed.
  */
 static size_t align_up(uintptr_t ptr, size_t alignment) {
-  return (-(size_t)ptr) & (alignment - 1);
+  return ((size_t)0 - (size_t)ptr) & (alignment - 1);
 }
 
 static bool arena_add_overflow(size_t a, size_t b, size_t *out) {
@@ -397,10 +404,10 @@ void arena_free(Arena *arena) {
   struct ArenaBlock *block = arena->head;
   while (block) {
     struct ArenaBlock *next = block->next;
-    free(block);
+    FREE(block);
     block = next;
   }
-  free(arena);
+  FREE(arena);
 }
 
 ArenaCheckpoint arena_checkpoint(Arena *arena) {
