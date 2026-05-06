@@ -26,9 +26,60 @@ else()
     )
 endif()
 
+# --- SIMD ISA selection ---
+set(LIBTERM_SIMD "auto" CACHE STRING
+    "SIMD ISA: auto|scalar|avx2|avx512|neon|sve|rvv")
+set_property(CACHE LIBTERM_SIMD PROPERTY STRINGS
+    auto scalar avx2 avx512 neon sve rvv)
+
+if(LIBTERM_SIMD STREQUAL "auto")
+    include(CheckCCompilerFlag)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64")
+        if(MSVC)
+            check_c_compiler_flag("/arch:AVX2" LIBTERM_SIMD_AVX2)
+        else()
+            check_c_compiler_flag("-mavx2" LIBTERM_SIMD_AVX2)
+        endif()
+        if(LIBTERM_SIMD_AVX2)
+            set(LIBTERM_SIMD_RESOLVED "avx2")
+        else()
+            set(LIBTERM_SIMD_RESOLVED "scalar")
+        endif()
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+        set(LIBTERM_SIMD_RESOLVED "neon")
+    else()
+        set(LIBTERM_SIMD_RESOLVED "scalar")
+    endif()
+else()
+    set(LIBTERM_SIMD_RESOLVED ${LIBTERM_SIMD})
+endif()
+
+set(LIBTERM_SIMD_FLAGS "")
+if(LIBTERM_SIMD_RESOLVED STREQUAL "avx2")
+    if(MSVC)
+        set(LIBTERM_SIMD_FLAGS "/arch:AVX2")
+    else()
+        set(LIBTERM_SIMD_FLAGS "-mavx2")
+    endif()
+elseif(LIBTERM_SIMD_RESOLVED STREQUAL "avx512")
+    if(MSVC)
+        set(LIBTERM_SIMD_FLAGS "/arch:AVX512")
+    else()
+        set(LIBTERM_SIMD_FLAGS "-mavx512f;-mavx512bw")
+    endif()
+elseif(LIBTERM_SIMD_RESOLVED STREQUAL "sve")
+    set(LIBTERM_SIMD_FLAGS "-march=armv8-a+sve")
+elseif(LIBTERM_SIMD_RESOLVED STREQUAL "rvv")
+    set(LIBTERM_SIMD_FLAGS "-march=rv64gcv")
+endif()
+
+set(LIBTERM_SIMD_TU "intrinsics/${LIBTERM_SIMD_RESOLVED}.c")
+message(STATUS "libterm SIMD: ${LIBTERM_SIMD_RESOLVED} (flags: ${LIBTERM_SIMD_FLAGS})")
+
 set(LIBTERM_ALL_SOURCES
     ${LIBTERM_SHARED_SOURCES}
     ${LIBTERM_PLATFORM_SOURCES}
+    ${LIBTERM_SIMD_TU}
 )
 
 set(LIBTERM_PRIVATE_INCLUDES
@@ -82,6 +133,12 @@ if(LIBTERM_BUILD_STATIC)
     add_library(Libterm::libterm ALIAS libterm_static)
 elseif(LIBTERM_BUILD_SHARED)
     add_library(Libterm::libterm ALIAS libterm_shared)
+endif()
+
+# Apply per-TU compile flags to the SIMD source.
+if(LIBTERM_SIMD_FLAGS)
+    set_source_files_properties(${LIBTERM_SIMD_TU} PROPERTIES
+        COMPILE_OPTIONS "${LIBTERM_SIMD_FLAGS}")
 endif()
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/libterm
