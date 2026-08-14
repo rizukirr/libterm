@@ -5,6 +5,7 @@
 #include "posix_resize.h"
 #include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
@@ -164,7 +165,7 @@ static bool lt__posix_read_one_grace(unsigned char *out) {
   }
 }
 
-static unsigned int lt__posix_parse_csi_mod(int mod_code) {
+static uint8_t lt__posix_parse_csi_mod(int mod_code) {
   switch (mod_code) {
   case 2:
     return LT_MOD_SHIFT;
