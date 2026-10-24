@@ -560,6 +560,17 @@ static unsigned int lt__posix_parse_esc_seq(const unsigned char *seq,
     int mod_code = lt__posix_parse_csi_letter_mod(seq, seq_len);
     ev->mod = lt__posix_parse_csi_mod(mod_code);
     lt__posix_parse_csi_final_key(seq[seq_len - 1], ev);
+  } else if (seq_len >= 5 && seq[1] == '[' &&
+             (seq[seq_len - 1] == 'P' || seq[seq_len - 1] == 'Q' ||
+              seq[seq_len - 1] == 'R' || seq[seq_len - 1] == 'S')) {
+    /* F1..F4 WITH modifiers arrive in xterm and Windows Terminal as
+     * CSI 1;<mod> P..S (e.g. ESC[1;5P = Ctrl-F1), not as CSI <n>;<mod> ~
+     * like F5..F12. Without this branch they fell through as an empty
+     * event. Same modifier decoding as for the arrow letters, key from
+     * the SS3 table (P..S = F1..F4). */
+    int mod_code = lt__posix_parse_csi_letter_mod(seq, seq_len);
+    ev->mod = lt__posix_parse_csi_mod(mod_code);
+    lt__posix_parse_ss3_final_key(seq[seq_len - 1], ev);
   } else if (seq_len >= 4 && seq[1] == '[') {
     if (seq[seq_len - 1] == '~') {
       lt__posix_parse_csi_tilde_key(seq, seq_len, ev);

@@ -7,6 +7,14 @@ may contain breaking API changes; patch versions never do).
 
 ## [Unreleased]
 
+### Fixed
+- **POSIX input:** F1–F4 with modifiers were dropped. xterm and Windows Terminal
+  (e.g. over ssh, where no kitty protocol is negotiated) send them as
+  `CSI 1;<mod> P..S` (`ESC[1;5P` = Ctrl-F1), unlike F5–F12 (`CSI <n>;<mod> ~`);
+  the CSI-letter branch only handled `A B C D H F`, so these sequences produced
+  an empty event. Now decoded like the arrow letters, key from the SS3 table.
+  Test: `run_csi_letter_f1_f4_mods` in `tests/test_posix_input_parse.c`.
+
 ## [0.1.2] - 2026-06-15
 
 Additive API release. The core API and ABI are unchanged from 0.1.1 — every

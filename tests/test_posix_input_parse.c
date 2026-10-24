@@ -286,6 +286,34 @@ static void run_letter_mod_matrix(void) {
   }
 }
 
+/* F1..F4 WITH modifiers: xterm and Windows Terminal send CSI 1;<mod> P..S
+ * (e.g. ESC [ 1 ; 5 P = Ctrl-F1), unlike F5..F12 (CSI <n>;<mod> ~). The
+ * CSI-letter branch only knew A B C D H F, so these fell through as an
+ * empty event. */
+static void run_csi_letter_f1_f4_mods(void) {
+  const struct mod_case mods[] = {
+      {'2', LT_MOD_SHIFT},
+      {'3', LT_MOD_ALT},
+      {'5', LT_MOD_CTRL},
+      {'6', LT_MOD_SHIFT | LT_MOD_CTRL},
+      {'8', LT_MOD_SHIFT | LT_MOD_ALT | LT_MOD_CTRL},
+  };
+  const struct letter_case keys[] = {
+      {'P', LT_KEY_F1},
+      {'Q', LT_KEY_F2},
+      {'R', LT_KEY_F3},
+      {'S', LT_KEY_F4},
+  };
+
+  for (size_t k = 0; k < sizeof(keys) / sizeof(keys[0]); k++) {
+    for (size_t m = 0; m < sizeof(mods) / sizeof(mods[0]); m++) {
+      const unsigned char s[] = {'\x1b', '[',           '1',
+                                 ';',    mods[m].digit, keys[k].final};
+      expect_seq(s, sizeof(s), keys[k].want_key, mods[m].want_mod);
+    }
+  }
+}
+
 static void run_bare_letter_keys(void) {
   /* No modifier — ESC [ <final>. */
   const struct letter_case keys[] = {
@@ -537,6 +565,7 @@ static void run_input_mode_esc(void) {
 
 int main(void) {
   run_letter_mod_matrix();
+  run_csi_letter_f1_f4_mods();
   run_bare_letter_keys();
   run_ss3_keys();
   run_tilde_happy();
