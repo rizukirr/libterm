@@ -19,6 +19,14 @@
  * "lone ESC vs. start of a sequence" disambiguation window: a real Escape
  * keypress costs at most this much latency before it resolves. */
 #define LT__ESC_SEQ_TIMEOUT_MS 50
+/* Grace period for the CONTINUATION bytes of a UTF-8 character. The escape
+ * timeout (50 ms) is too short for it: over ssh (Windows client -> Linux
+ * host) the bytes of one keystroke can arrive further apart, and the lead
+ * byte then became U+FFFD while the tail was reported as a stray byte.
+ * Unlike a lone ESC, a pending UTF-8 lead byte can never be a complete key
+ * by itself, so waiting longer costs nothing on a healthy stream -- 500 ms
+ * is the usual terminal/tmux magnitude. */
+#define LT__UTF8_TAIL_TIMEOUT_MS 500
 
 /* Saturating decimal accumulation for escape-sequence numeric fields. Inputs
  * arrive from the terminal (untrusted), so a long run of digits must not
@@ -101,11 +109,11 @@ static size_t lt__posix_read_utf8_tail(unsigned char *buf, size_t have,
       buf[len++] = pb;
       continue;
     }
-    /* Same grace period as the escape-sequence reader: a multi-byte UTF-8
-     * character can arrive fragmented, and a zero timeout would truncate it
-     * into a spurious U+FFFD. See LT__ESC_SEQ_TIMEOUT_MS. */
+    /* A multi-byte UTF-8 character can arrive fragmented; a short timeout
+     * truncates it into a spurious U+FFFD. See LT__UTF8_TAIL_TIMEOUT_MS
+     * (deliberately longer than the escape timeout). */
     tv.tv_sec = 0;
-    tv.tv_usec = LT__ESC_SEQ_TIMEOUT_MS * 1000;
+    tv.tv_usec = LT__UTF8_TAIL_TIMEOUT_MS * 1000;
 
     FD_ZERO(&rfds);
     FD_SET(ttyfd, &rfds);

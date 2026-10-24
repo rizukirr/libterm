@@ -7,6 +7,15 @@ may contain breaking API changes; patch versions never do).
 
 ## [Unreleased]
 
+### Fixed
+- **POSIX input:** the continuation bytes of a UTF-8 character were awaited only
+  for the escape-sequence window (50 ms). Over ssh (Windows client → Linux host)
+  the bytes of one keystroke can arrive further apart; the lead byte then became
+  `U+FFFD` and the tail a stray byte. A pending lead byte can never be a complete
+  key by itself, so the tail reader now waits up to `LT__UTF8_TAIL_TIMEOUT_MS`
+  (500 ms); the ESC disambiguation window is unchanged. Test: split `ä` with a
+  200 ms gap in `tests/test_posix_input_frag.c`.
+
 ## [0.1.2] - 2026-06-15
 
 Additive API release. The core API and ABI are unchanged from 0.1.1 — every
