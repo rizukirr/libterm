@@ -46,6 +46,28 @@ int main(void) {
   assert(decode_ok("\x1bOP", 3, 0).key == LT_KEY_F1);
   assert(decode_ok("\x1bOS", 3, 0).key == LT_KEY_F4);
 
+  /* F1-F4 with modifiers: CSI 1;<mod> P..S (xterm, Windows Terminal). */
+  {
+    struct lt_event e = decode_ok("\x1b[1;5P", 6, 0);
+    assert(e.key == LT_KEY_F1 && e.mod == LT_MOD_CTRL);
+  }
+
+  {
+    struct lt_event e = decode_ok("\x1b[1;2Q", 6, 0);
+    assert(e.key == LT_KEY_F2 && e.mod == LT_MOD_SHIFT);
+  }
+
+  {
+    struct lt_event e = decode_ok("\x1b[1;3R", 6, 0);
+    assert(e.key == LT_KEY_F3 && e.mod == LT_MOD_ALT);
+  }
+
+  {
+    struct lt_event e = decode_ok("\x1b[1;8S", 6, 0);
+    assert(e.key == LT_KEY_F4 &&
+           e.mod == (LT_MOD_SHIFT | LT_MOD_ALT | LT_MOD_CTRL));
+  }
+
   /* rxvt: Shift+arrows (lowercase letters), Ctrl+arrows via SS3 lowercase. */
   {
     struct lt_event e = decode_ok("\x1b[a", 3, 0);
