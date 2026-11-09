@@ -8,7 +8,7 @@ Draw into an off-screen cell buffer and call `lt_present()`. libterm emits only 
 
 | Area | What you get |
 |---|---|
-| API | termbox2's API with `tb_` and `TB_` renamed to `lt_` and `LT_`. Include `compat/termbox2.h` to build existing termbox2 code unchanged ([porting guide](https://github.com/rizukirr/libterm/wiki/Porting-from-termbox2)). [ROADMAP.md](ROADMAP.md) tracks per-symbol status. |
+| API | termbox2's API with `tb_` and `TB_` renamed to `lt_` and `LT_`. Include `compat/termbox2.h` to build existing termbox2 code unchanged ([porting guide](https://rizukirr.github.io/libterm-web/docs/guides/porting-from-termbox2)). [ROADMAP.md](ROADMAP.md) tracks per-symbol status. |
 | Platforms | `/dev/tty` with termios raw mode on POSIX, the Win32 Console API on Windows. Shared code has no platform `#ifdef`. |
 | Rendering | Double-buffered diff with a SIMD cell scan (AVX2, AVX-512, NEON, SVE, RVV, scalar fallback). All backends for your architecture are compiled in and the best one is picked at runtime, so one binary runs everywhere. Pin one with `-DLIBTERM_SIMD=<backend>`. |
 | Unicode | UTF-8, `wcwidth` with wide and zero-width handling, grapheme clusters (combining marks, ZWJ emoji). |
@@ -118,7 +118,14 @@ Built into `build/examples/`:
 
 ## Documentation
 
-The [project wiki](https://github.com/rizukirr/libterm/wiki) holds the API reference and guides, including [Porting from termbox2](https://github.com/rizukirr/libterm/wiki/Porting-from-termbox2): the drop-in header, what is supported, and the Ctrl+letter input-model gotcha with both fixes.
+The documentation lives at [rizukirr.github.io/libterm-web](https://rizukirr.github.io/libterm-web/):
+
+- [Getting started](https://rizukirr.github.io/libterm-web/docs/getting-started/install) and five [tutorials](https://rizukirr.github.io/libterm-web/docs/tutorials) that build up to a small paint app.
+- Guides on [screen and rendering](https://rizukirr.github.io/libterm-web/docs/guides/screen-and-rendering), [text and Unicode](https://rizukirr.github.io/libterm-web/docs/guides/text-and-unicode), [colors](https://rizukirr.github.io/libterm-web/docs/guides/colors-and-attributes), [input and events](https://rizukirr.github.io/libterm-web/docs/guides/input-and-events), [platform notes](https://rizukirr.github.io/libterm-web/docs/guides/platforms) and [errors](https://rizukirr.github.io/libterm-web/docs/guides/errors).
+- [Porting from termbox2](https://rizukirr.github.io/libterm-web/docs/guides/porting-from-termbox2): the drop-in header, what is supported, and the Ctrl+letter input-model gotcha with both fixes.
+- The [API reference](https://rizukirr.github.io/libterm-web/docs/api), one entry per function with parameters, return codes and an example, covering every symbol in `libterm.h`.
+
+The site's source is in [rizukirr/libterm-web](https://github.com/rizukirr/libterm-web).
 
 ## License
 
