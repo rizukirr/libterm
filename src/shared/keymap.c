@@ -163,14 +163,24 @@ static uint16_t lt__km_letter_key(unsigned char final) {
     return LT_KEY_HOME;
   case 'F':
     return LT_KEY_END;
+  case 'P':
+    return LT_KEY_F1;
+  case 'Q':
+    return LT_KEY_F2;
+  case 'R':
+    return LT_KEY_F3;
+  case 'S':
+    return LT_KEY_F4;
   default:
     return 0;
   }
 }
 
-/* Parse ESC [ <p0> [; <p1>] <final> where finals are ~ or A/B/C/D/H/F and the
- * params are decimal. Returns MATCH/PARTIAL/NOMATCH. Only called for
- * seq[1]=='[' with at least one digit. */
+/* Parse ESC [ <p0> [; <p1>] <final> where finals are ~ (edit/function keys
+ * by number), or A/B/C/D/H/F (cursor keys) or P/Q/R/S (F1-F4, the SS3 letters
+ * move into a CSI when a modifier is held) and the params are decimal.
+ * Returns MATCH/PARTIAL/NOMATCH. Only called for seq[1]=='[' with at least
+ * one digit. */
 static enum lt__key_match lt__match_csi_param(const unsigned char *seq,
                                               size_t len, struct lt_event *out,
                                               size_t *consumed) {
