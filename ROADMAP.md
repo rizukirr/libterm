@@ -85,7 +85,7 @@ Legend: `[x]` working · `[~]` partial / stubbed · `[ ]` not implemented · `[�
 | *(libterm addition)* | `lt_is_dark_background` | [x] | [x] | Queries the default background and thresholds its ITU-R BT.709 relative luminance: 1 dark / 0 light / negative `LT_ERR_*` passed through (recommended fallback: treat errors as "assume dark"). Same platform paths and tests as `lt_query_color`; demoed in `examples/theme.c` |
 | `tb_has_egc` | `lt_has_egc` | [x] | [x] | Returns 1 — grapheme-cluster support is always built in (no compile-time opt-out, unlike termbox2's `TB_OPT_EGC`) |
 | `tb_attr_width` | `lt_attr_width` | [x] | [x] | Returns `sizeof(lt_attr)` = 4. libterm has no compile-time attribute-width option (`lt_attr` is always `uint32_t`), so it's constant. Tested in `tests/test_wcwidth.c` |
-| `tb_version` | `lt_version` | [x] | [x] | Returns `"0.1.2"` |
+| `tb_version` | `lt_version` | [x] | [x] | Returns `"0.1.3"` |
 | `tb_iswprint` | `lt_iswprint` | [x] | [x] | Shared; non-zero when `lt_wcwidth(ch) >= 0`. Tested in `tests/test_wcwidth.c` |
 | `tb_wcwidth` | `lt_wcwidth` | [x] | [x] | Shared (`src/shared/wcwidth.c`): 0 for combining/zero-width, 2 for wide CJK/emoji, 1 otherwise, -1 for control/non-printable. Markus Kuhn reference ranges (bisected combining table + wide-range tests); not locale-dependent. Consumed by `lt_print` for correct column advance |
 

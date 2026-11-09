@@ -32,9 +32,9 @@ ctest --test-dir build      # run the test suite
 Every [release](https://github.com/rizukirr/libterm/releases) ships install trees for Linux (x86_64, aarch64, riscv64), Windows (x86_64, MinGW) and macOS (arm64, x86_64), with a `SHA256SUMS` file.
 
 ```sh
-tar -xzf libterm-v0.1.2-linux-x86_64.tar.gz
+tar -xzf libterm-v0.1.3-linux-x86_64.tar.gz
 sha256sum -c SHA256SUMS --ignore-missing
-cmake -B build -DCMAKE_PREFIX_PATH=$PWD/libterm-v0.1.2-linux-x86_64   # then find_package(Libterm)
+cmake -B build -DCMAKE_PREFIX_PATH=$PWD/libterm-v0.1.3-linux-x86_64   # then find_package(Libterm)
 ```
 
 The macOS binaries are unsigned. Run `xattr -d com.apple.quarantine` on the extracted files or build from source.
@@ -70,7 +70,7 @@ With CMake, fetch libterm and link the exported target:
 include(FetchContent)
 FetchContent_Declare(libterm
     GIT_REPOSITORY https://github.com/rizukirr/libterm
-    GIT_TAG        v0.1.2)
+    GIT_TAG        v0.1.3)
 FetchContent_MakeAvailable(libterm)
 
 target_link_libraries(myapp PRIVATE Libterm::libterm)

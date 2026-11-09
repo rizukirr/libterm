@@ -81,7 +81,7 @@ int main(void) {
   struct lt_event ev;
 
   /* stable metadata */
-  assert(strcmp(lt_version(), "0.1.2") == 0);
+  assert(strcmp(lt_version(), "0.1.3") == 0);
   assert(lt_strerror(LT_OK) != 0);
   assert(lt_strerror(LT_ERR_NOT_INIT) != 0);
 

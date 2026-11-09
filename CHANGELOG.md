@@ -7,6 +7,17 @@ may contain breaking API changes; patch versions never do).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-09
+
+Bug-fix release for POSIX input. No API or ABI change from 0.1.2. `lt_version()` returns `"0.1.3"`.
+
+### Fixed
+- **POSIX input:** F1-F4 with a modifier held were dropped. xterm, VTE and Windows Terminal send them as `CSI 1;<mod> P..S` (`ESC[1;5P` = Ctrl-F1), and the shared decoder's letter table only knew `A B C D H F`, so the sequence fell through as an empty event. Decoded on the first pass now, with the modifier handled like the cursor keys. Reported in #59.
+- **POSIX input:** the continuation bytes of a UTF-8 character were awaited only for the 50 ms escape window. Over ssh from a Windows client the bytes of one keystroke can arrive further apart, so the lead byte became `U+FFFD` and the tail a stray key. The tail reader now waits up to 500 ms (`LT__UTF8_TAIL_TIMEOUT_MS`). The escape window is unchanged. Reported in #60.
+
+### Changed
+- README rewritten in plainer, shorter prose. The `theme` and `resize` examples are now listed.
+
 ## [0.1.2] - 2026-06-15
 
 Additive API release. The core API and ABI are unchanged from 0.1.1 — every

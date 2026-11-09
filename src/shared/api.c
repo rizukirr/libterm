@@ -92,4 +92,4 @@ int lt_shutdown(void) {
 int lt_width(void) { return lt__g.width; }
 int lt_height(void) { return lt__g.height; }
 
-const char *lt_version(void) { return "0.1.2"; }
+const char *lt_version(void) { return "0.1.3"; }
