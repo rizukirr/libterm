@@ -118,6 +118,36 @@ int main(void) {
     waitpid(pid, &st, 0);
   }
 
+  /* UTF-8 character split after the lead byte with a gap longer than the ESC
+   * disambiguation window (50 ms): ssh from a Windows client can deliver the
+   * bytes of one keystroke this far apart. A pending lead byte can never be a
+   * complete key by itself, so the continuation reader must keep waiting
+   * instead of emitting U+FFFD plus a stray byte. */
+  {
+    pid_t pid = fork();
+    if (pid == 0) {
+      nap_ms(30);
+      write(master, "\xc3", 1); /* lead byte of U+00E4 */
+      nap_ms(200);              /* > LT__ESC_SEQ_TIMEOUT_MS */
+      write(master, "\xa4", 1);
+      nap_ms(100);
+      _exit(0);
+    }
+    assert(pid > 0);
+    struct lt_event ev;
+    memset(&ev, 0, sizeof(ev));
+    int rc = lt_peek_event(&ev, 3000);
+    assert(rc == LT_OK);
+    assert(ev.type == LT_EVENT_KEY);
+    assert(ev.ch == 0xE4);
+    /* The continuation byte was consumed, not left over as its own event. */
+    memset(&ev, 0, sizeof(ev));
+    rc = lt_peek_event(&ev, 100);
+    assert(rc != LT_OK || ev.ch != 0xA4);
+    int st;
+    waitpid(pid, &st, 0);
+  }
+
   assert(lt_shutdown() == LT_OK);
   close(slave);
   close(master);

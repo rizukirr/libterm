@@ -19,6 +19,13 @@
  * "lone ESC vs. start of a sequence" disambiguation window: a real Escape
  * keypress costs at most this much latency before it resolves. */
 #define LT__ESC_SEQ_TIMEOUT_MS 50
+/* Grace period for the continuation bytes of a UTF-8 character. The escape
+ * window is too short for it: over ssh from a Windows client the bytes of one
+ * keystroke can arrive more than 50 ms apart, which turned the lead byte into
+ * U+FFFD and delivered the tail as a stray key. Unlike a lone ESC, a pending
+ * lead byte can never be a complete key by itself, so waiting longer costs
+ * nothing on a healthy stream. 500 ms matches tmux's escape-time default. */
+#define LT__UTF8_TAIL_TIMEOUT_MS 500
 
 /* Saturating decimal accumulation for escape-sequence numeric fields. Inputs
  * arrive from the terminal (untrusted), so a long run of digits must not
@@ -101,11 +108,11 @@ static size_t lt__posix_read_utf8_tail(unsigned char *buf, size_t have,
       buf[len++] = pb;
       continue;
     }
-    /* Same grace period as the escape-sequence reader: a multi-byte UTF-8
-     * character can arrive fragmented, and a zero timeout would truncate it
-     * into a spurious U+FFFD. See LT__ESC_SEQ_TIMEOUT_MS. */
+    /* A multi-byte UTF-8 character can arrive fragmented; a short timeout
+     * truncates it into a spurious U+FFFD. See LT__UTF8_TAIL_TIMEOUT_MS,
+     * deliberately longer than the escape window. */
     tv.tv_sec = 0;
-    tv.tv_usec = LT__ESC_SEQ_TIMEOUT_MS * 1000;
+    tv.tv_usec = LT__UTF8_TAIL_TIMEOUT_MS * 1000;
 
     FD_ZERO(&rfds);
     FD_SET(ttyfd, &rfds);
@@ -139,8 +146,8 @@ static size_t lt__posix_read_utf8_tail(unsigned char *buf, size_t have,
 }
 
 /* Read one more byte within the inter-byte grace period. Returns true and sets
- * *out on success; false on timeout/EOF/error. Mirrors the timeout used by the
- * UTF-8 and escape-tail readers. */
+ * *out on success; false on timeout/EOF/error. Uses the escape window; the
+ * UTF-8 tail reader has its own, longer one. */
 static bool lt__posix_read_one_grace(unsigned char *out) {
   if (lt__posix_pushback_pop(out))
     return true;
